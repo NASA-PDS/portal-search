@@ -1,0 +1,38 @@
+name: Moves Issues To Current Sprint
+
+on:
+  schedule:
+    # Runs "at 07:00, only on Thursday" (see https://crontab.guru)
+    - cron: '0 14 * * 5'
+  workflow_dispatch:
+
+jobs:
+  move-to-next-iteration:
+    name: Move to next iteration
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Keepalive — prevent GitHub from disabling this scheduled workflow
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+
+    - name: Push empty commit to reset inactivity timer
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git commit --allow-empty -m "chore: keepalive [skip ci]"
+        git push
+
+    - uses: blombard/move-to-next-iteration@master
+      with:
+        owner: NASA-PDS
+        number: 25
+        token: ${{ secrets.ORG_PROJECT_PAT }}
+        iteration-field: sprint
+        iteration: last
+        new-iteration: current
+        excluded-statuses: "Done"

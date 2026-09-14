@@ -1,0 +1,112 @@
+name: Label-based Project Management
+
+on:
+  workflow_call:
+    inputs:
+      issue_number:
+        description: 'Issue number'
+        required: true
+        type: number
+      repository:
+        description: 'Repository name (org/repo format)'
+        required: true
+        type: string
+      label_name:
+        description: 'Label that was added or removed'
+        required: true
+        type: string
+      action:
+        description: 'Action: labeled or unlabeled'
+        required: true
+        type: string
+    secrets:
+      gh_token:
+        description: 'GitHub token with project write permissions'
+        required: true
+
+jobs:
+  handle-label:
+    runs-on: ubuntu-latest
+    name: Handle label-based project automation
+
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          repository: NASA-PDS/.github
+          sparse-checkout: |
+            .github/scripts
+            conf
+          sparse-checkout-cone-mode: false
+
+      - name: Process build label
+        if: inputs.action == 'labeled' && startsWith(inputs.label_name, 'B') && inputs.label_name != 'bug'
+        env:
+          GH_TOKEN: ${{ secrets.gh_token }}
+        run: |
+          # Extract org from repository
+          org=$(echo "${{ inputs.repository }}" | cut -d'/' -f1)
+
+          # Add to build project and set project-level Product field
+          # --set-sprint-if-backlog: also set current sprint if sprint-backlog is already on the issue
+          # --config: also set the Product single-select field on the project item
+          python3 .github/scripts/project_automation.py \
+            add-to-build-project \
+            --repository "${{ inputs.repository }}" \
+            --issue-number ${{ inputs.issue_number }} \
+            --org "$org" \
+            --label "${{ inputs.label_name }}" \
+            --set-sprint-if-backlog \
+            --config conf/pds-products.yaml
+
+          # Also set org-level Product field (org fields cannot be used for project grouping)
+          python3 .github/scripts/project_automation.py \
+            set-product-field \
+            --repository "${{ inputs.repository }}" \
+            --issue-number ${{ inputs.issue_number }} \
+            --org "$org" \
+            --config conf/pds-products.yaml || true
+
+      - name: Add to sprint when sprint-backlog label added
+        if: inputs.action == 'labeled' && inputs.label_name == 'sprint-backlog'
+        env:
+          GH_TOKEN: ${{ secrets.gh_token }}
+        run: |
+          # Extract org from repository
+          org=$(echo "${{ inputs.repository }}" | cut -d'/' -f1)
+
+          # Run Python automation script
+          python3 .github/scripts/project_automation.py \
+            add-to-sprint \
+            --repository "${{ inputs.repository }}" \
+            --issue-number ${{ inputs.issue_number }} \
+            --org "$org"
+
+      - name: Remove from sprint when sprint-backlog label removed
+        if: inputs.action == 'unlabeled' && inputs.label_name == 'sprint-backlog'
+        env:
+          GH_TOKEN: ${{ secrets.gh_token }}
+        run: |
+          # Extract org from repository
+          org=$(echo "${{ inputs.repository }}" | cut -d'/' -f1)
+
+          # Run Python automation script
+          python3 .github/scripts/project_automation.py \
+            remove-from-sprint \
+            --repository "${{ inputs.repository }}" \
+            --issue-number ${{ inputs.issue_number }} \
+            --org "$org"
+
+      - name: Remove from build project when build label removed
+        if: inputs.action == 'unlabeled' && startsWith(inputs.label_name, 'B') && inputs.label_name != 'bug'
+        env:
+          GH_TOKEN: ${{ secrets.gh_token }}
+        run: |
+          org=$(echo "${{ inputs.repository }}" | cut -d'/' -f1)
+
+          python3 .github/scripts/project_automation.py \
+            remove-from-build-project \
+            --repository "${{ inputs.repository }}" \
+            --issue-number ${{ inputs.issue_number }} \
+            --org "$org" \
+            --label "${{ inputs.label_name }}"
