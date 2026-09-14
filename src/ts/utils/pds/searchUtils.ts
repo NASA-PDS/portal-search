@@ -447,6 +447,49 @@ const getLinkToInstrumentDetailPage = (doc: SearchResultDoc) => {
   return link
 }
 
+/**
+ * Some Instrument_Host records in Solr are incorrectly tagged with more than one
+ * investigation_ref, when an instrument host should only ever belong to one
+ * investigation. This has been reported and verified as a Solr-side data issue
+ * that will be corrected at the source. Until then, this hardcoded map is the
+ * agreed-upon quick fix: it overrides the investigation_ref used to build the
+ * link for the affected instrument hosts (keyed by their identifier/LID).
+ * Remove this map once the underlying Solr data is fixed.
+ */
+const instrumentHostInvestigationRefOverrides: Record<string, string> = {
+  'urn:nasa:pds:context:instrument_host:spacecraft.go': 'urn:nasa:pds:context:investigation:mission.galileo',
+  'urn:nasa:pds:context:instrument_host:spacecraft.hst': 'urn:nasa:pds:context:investigation:mission.hst',
+  'urn:nasa:pds:context:instrument_host:spacecraft.clps_to_2im_ncll': 'urn:nasa:pds:context:investigation:mission.clps_to_2im',
+  'urn:nasa:pds:context:instrument_host:spacecraft.p10': 'urn:nasa:pds:context:investigation:mission.pioneer_10',
+  'urn:nasa:pds:context:instrument_host:spacecraft.pvo': 'urn:nasa:pds:context:investigation:mission.pioneer_venus',
+  'urn:nasa:pds:context:instrument_host:spacecraft.clps_to_2ab_pll': 'urn:nasa:pds:context:investigation:mission.clps_to_2ab',
+  'urn:nasa:pds:context:instrument_host:spacecraft.dif': 'urn:nasa:pds:context:investigation:mission.deep_impact',
+  'urn:esa:psa:context:instrument_host:spacecraft.gio': 'urn:esa:psa:context:investigation:mission.giotto',
+  'urn:esa:psa:context:instrument_host:spacecraft.iue': 'urn:esa:psa:context:investigation:mission.iue',
+  'urn:nasa:pds:context:instrument_host:spacecraft.liciacube': 'urn:nasa:pds:context:investigation:mission.light_italian_cubesat_for_imaging_of_asteroids',
+  'urn:nasa:pds:context:instrument_host:spacecraft.nh': 'urn:nasa:pds:context:investigation:mission.new_horizons',
+  'urn:nasa:pds:context:instrument_host:spacecraft.sdu': 'urn:nasa:pds:context:investigation:mission.stardust',
+  'urn:nasa:pds:context:instrument_host:spacecraft.vo2': 'urn:nasa:pds:context:investigation:mission.viking',
+  'urn:nasa:pds:context:instrument_host:spacecraft.wise': 'urn:nasa:pds:context:investigation:mission.wise',
+  'urn:nasa:pds:context:instrument_host:spacecraft.vg2': 'urn:nasa:pds:context:investigation:mission.voyager'
+}
+
+const getLinkToInstrumentHostDetailPage = (doc: SearchResultDoc) => {
+  const instrumentHostId = doc.identifier[0]
+
+  let investigationRef = instrumentHostInvestigationRefOverrides[instrumentHostId]
+
+  if (!investigationRef && doc.investigation_ref && doc.investigation_ref.length > 0) {
+    [investigationRef] = doc.investigation_ref
+  }
+
+  if (!investigationRef) {
+    return getDefaultLink(doc)
+  }
+
+  return `/investigations/${encodeURIComponent(investigationRef)}/instrument-hosts`
+}
+
 const getLinkToTargetDetailPage = (doc: SearchResultDoc) => {
   const link = `/targets/${doc.identifier[0]}`
 
@@ -580,7 +623,7 @@ const generateSearchResultLinkPath = (pageType: string, doc: SearchResultDoc) =>
       link = getLinkToInstrumentDetailPage(doc)
       break
     case 'instrument host portal':
-      link = getLinkToInstrumentDetailPage(doc)
+      link = getLinkToInstrumentHostDetailPage(doc)
       break
     case 'telescope portal':
       link = getLinkToTelescopeDetailPage(doc)
