@@ -1,0 +1,61 @@
+name: Stale PR Slack Notification
+
+on:
+  schedule:
+    # 8am Pacific Daylight Time (UTC-7); shifts to 7am in winter (PST/UTC-8)
+    - cron: '0 15 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      include_dependabot:
+        description: 'Include Dependabot PRs (security-labeled only). Off by default — volume is too high.'
+        type: boolean
+        default: false
+
+jobs:
+  notify-stale-prs:
+    name: Notify stale PRs via Slack webhook
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract ignored repos from pds-products.yaml
+        run: |
+          python3 -c "
+          import yaml, json
+          with open('conf/pds-products.yaml') as f:
+              data = yaml.safe_load(f)
+          repos = [
+              'NASA-PDS/' + r
+              for p in data['products'].values()
+              if p.get('ignore', False)
+              for r in p.get('repositories', [])
+          ]
+          print(json.dumps(repos))
+          " > ignored_repos.json
+
+      - name: Find open PRs (>3 days old, non-draft, non-Dependabot)
+        id: stale
+        timeout-minutes: 15
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+        run: |
+          COUNT=$(.github/scripts/fetch-stale-prs.sh stale_prs.json)
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Build and send Slack message
+        if: steps.stale.outputs.count != '0'
+        env:
+          SLACK_WORKFLOW_WEBHOOK_URL: ${{ secrets.SLACK_WORKFLOW_WEBHOOK_URL }}
+          INCLUDE_DEPENDABOT: ${{ inputs.include_dependabot || 'false' }}
+        run: |
+          if [ -z "$SLACK_WORKFLOW_WEBHOOK_URL" ]; then
+            echo "SLACK_WORKFLOW_WEBHOOK_URL secret is not set — skipping notification"
+            exit 0
+          fi
+
+          .github/scripts/build-slack-payload.sh stale_prs.json ignored_repos.json > payload.json
+
+          curl -s -f -X POST "$SLACK_WORKFLOW_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d @payload.json
