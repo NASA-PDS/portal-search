@@ -614,7 +614,7 @@ const generateSearchResultLinkPath = (pageType: string, doc: SearchResultDoc) =>
       link = getLinkToToolDetailPage(doc)
       break
     case 'resource':
-      link = getDefaultLink(doc)
+      link = getLinkToCollectionDetailPage(doc)
       break
     case 'investigation portal':
       link = getLinkToInvestigationDetailPage(doc)
