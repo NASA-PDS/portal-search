@@ -72,10 +72,13 @@ export const queryFacetedCollections = async (params: Params): Promise<QueryResu
 
   const formattedQuery = formatFilterQueries(params as PdsCmrParams)
 
+  // Keyword is sent to Solr exactly as typed (no added wildcards); relevance is handled server side
+  const keyword = cmrParams.keyword?.trim()
+
   // Keyword logic
   let pdsUrl = 'https://pds.nasa.gov/services/search/search?wt=json&qt=keyword&q='
-  if (cmrParams.keyword) {
-    pdsUrl += cmrParams.keyword.replace('*', '')
+  if (keyword) {
+    pdsUrl += encodeURIComponent(keyword)
   }
 
   pdsUrl += formattedQuery
@@ -113,8 +116,8 @@ export const queryFacetedCollections = async (params: Params): Promise<QueryResu
   const pdsData = convertPdsDataToAppData(formattedData)
 
   let facetCountsUrl = 'https://pds.nasa.gov/services/search/search?q=&qt=keyword&rows=0&facet=on&facet.field=investigation_ref&facet.field=instrument_ref&facet.field=target_ref&facet.field=page_type&wt=json&facet.limit=-1'
-  if (cmrParams.keyword) {
-    facetCountsUrl = facetCountsUrl.replace('q=', `q=${cmrParams.keyword.replace('*', '')}`)
+  if (keyword) {
+    facetCountsUrl = facetCountsUrl.replace('q=', `q=${encodeURIComponent(keyword)}`)
   }
 
   // Facet logic
