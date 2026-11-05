@@ -75,7 +75,7 @@ export const queryFacetedCollections = async (params: Params): Promise<QueryResu
   // Keyword logic
   let pdsUrl = 'https://pds.nasa.gov/services/search/search?wt=json&qt=keyword&q='
   if (cmrParams.keyword) {
-    pdsUrl += cmrParams.keyword.replace('*', '')
+    pdsUrl += encodeURIComponent(cmrParams.keyword)
   }
 
   pdsUrl += formattedQuery
@@ -114,7 +114,7 @@ export const queryFacetedCollections = async (params: Params): Promise<QueryResu
 
   let facetCountsUrl = 'https://pds.nasa.gov/services/search/search?q=&qt=keyword&rows=0&facet=on&facet.field=investigation_ref&facet.field=instrument_ref&facet.field=target_ref&facet.field=page_type&wt=json&facet.limit=-1'
   if (cmrParams.keyword) {
-    facetCountsUrl = facetCountsUrl.replace('q=', `q=${cmrParams.keyword.replace('*', '')}`)
+    facetCountsUrl = facetCountsUrl.replace('q=', `q=${encodeURIComponent(cmrParams.keyword)}`)
   }
 
   // Facet logic
