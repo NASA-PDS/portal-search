@@ -614,7 +614,15 @@ const generateSearchResultLinkPath = (pageType: string, doc: SearchResultDoc) =>
       link = getLinkToToolDetailPage(doc)
       break
     case 'resource':
-      link = getDefaultLink(doc)
+      // The 'resource' page type covers both Product_Document objects and
+      // Product_Collection objects whose collection_type is 'document'.
+      // Only the collections have a detail page in the portal.
+      if (doc.product_class?.[0]?.toLowerCase() === 'product_collection') {
+        link = getLinkToCollectionDetailPage(doc)
+      } else {
+        link = getDefaultLink(doc)
+      }
+
       break
     case 'investigation portal':
       link = getLinkToInvestigationDetailPage(doc)
