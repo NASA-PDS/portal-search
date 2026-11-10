@@ -41,7 +41,6 @@ import {
   Params,
   QueryResult
 } from '../../../types/global'
-import { getKeywordWithWildcard } from '../../utils/getKeywordWithWildcard'
 import { SUBMIT_DELAY_MS } from '../../constants/submitDelay'
 
 interface AutoSaveFormikProps {
@@ -144,14 +143,8 @@ const DataCatalog: React.FC = () => {
         setCalled(true)
         setLoading(true)
 
-        // Create a new object with the transformed keyword
-        const transformedParams = {
-          ...collectionSearchParams,
-          keyword: getKeywordWithWildcard(collectionSearchParams.keyword as string)
-        }
-
         const response: QueryResult = await
-        queryFacetedCollections(transformedParams as Params)
+        queryFacetedCollections(collectionSearchParams as Params)
 
         const { facetData, data: responseData } = response
 
