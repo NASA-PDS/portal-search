@@ -6,28 +6,6 @@ This directory contains GitHub Actions workflows for the NASA-PDS organization. 
 
 These workflows run in the context of the NASA-PDS organization's `.github` repository and handle org-level automation:
 
-### move-to-next-iteration.yml
-**Purpose**: Automatically moves issues forward in sprint iterations
-
-**Type**: Org-wide scheduled workflow
-
-**Trigger**:
-- Scheduled: Every Thursday at 07:00 UTC
-- Manual: workflow_dispatch
-
-**What it does**:
-- Moves all issues from the last sprint iteration to the current sprint
-- Operates on NASA-PDS Project #22
-- Excludes issues with "Done" status
-- Uses the "sprint" iteration field
-
-**Configuration**:
-- Organization: `NASA-PDS`
-- Project number: `22`
-- Requires: `ORG_PROJECT_PAT` secret
-
----
-
 ### stale-prs-slack.yml
 **Purpose**: Posts a "Tumbleweeds Report" of stale open PRs to Slack each weekday morning
 
@@ -169,7 +147,6 @@ All workflows require the `ORG_PROJECT_PAT` secret:
 These workflows depend on:
 
 - **Scripts**: `.github/scripts/project-utils.sh` and `.github/scripts/project_automation.py` from the NASA-PDS/.github repository
-- **External Actions**: `blombard/move-to-next-iteration@master` (for sprint iteration management)
 
 ---
 
@@ -177,7 +154,6 @@ These workflows depend on:
 
 | Workflow | Type | Use Case |
 |----------|------|----------|
-| `move-to-next-iteration.yml` | Org-wide | Weekly sprint transitions (Thursdays @ 07:00 UTC) |
 | `add-issue-to-project.yml` | Reusable | Add issues to projects programmatically |
 | `label-to-project.yml` | Reusable | Automate project management based on labels |
 | `issue-project-automation.yml` | Template | Complete example to copy to your repo |
