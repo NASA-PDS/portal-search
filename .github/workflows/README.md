@@ -16,15 +16,16 @@ These workflows run in the context of the NASA-PDS organization's `.github` repo
 - Manual: workflow_dispatch
 
 **What it does**:
-- Moves all issues from the last sprint iteration to the current sprint
-- Operates on NASA-PDS Project #22
-- Excludes issues with "Done" status
+- Runs `.github/scripts/move_to_next_iteration.py`, which moves all items from the last sprint iteration to the current sprint
+- Operates on NASA-PDS Project #25
+- Excludes items with "Done" status
 - Uses the "sprint" iteration field
+- Manual runs accept a `dry_run` input that lists the items that would move without changing the project
 
 **Configuration**:
 - Organization: `NASA-PDS`
-- Project number: `22`
-- Requires: `ORG_PROJECT_PAT` secret
+- Project number: `25`
+- Requires: `ORG_PROJECT_PAT` secret (passed to the script as `GH_TOKEN`)
 
 ---
 
@@ -169,7 +170,7 @@ All workflows require the `ORG_PROJECT_PAT` secret:
 These workflows depend on:
 
 - **Scripts**: `.github/scripts/project-utils.sh` and `.github/scripts/project_automation.py` from the NASA-PDS/.github repository
-- **External Actions**: `blombard/move-to-next-iteration@master` (for sprint iteration management)
+- **Sprint iteration script**: `.github/scripts/move_to_next_iteration.py` in this repository (used by `move-to-next-iteration.yml`)
 
 ---
 
