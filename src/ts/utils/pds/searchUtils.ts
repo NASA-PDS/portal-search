@@ -1287,31 +1287,61 @@ const generateFilterSubQuery = (topics: string[], filterName: string) => {
   return subQueryString
 }
 
+/**
+ * The faceted filter groups: the URL param holding the selections, the Solr
+ * field they filter on, and the Solr tag used to exclude a group's own filter
+ * when counting that group's facet values. Tags match the Drupal home search
+ * URL keys (tar, inv, ins, ptype).
+ */
+export const FILTER_GROUPS = [
+  {
+    param: 'page_types',
+    field: 'page_type',
+    tag: 'ptype'
+  },
+  {
+    param: 'investigations',
+    field: 'investigation_ref',
+    tag: 'inv'
+  },
+  {
+    param: 'instruments',
+    field: 'instrument_ref',
+    tag: 'ins'
+  },
+  {
+    param: 'targets',
+    field: 'target_ref',
+    tag: 'tar'
+  }
+] as const
+
+/**
+ * Builds one tagged filter query (&fq={!tag=...}...) per selected filter group.
+ * Values within a group are OR'd; groups are AND'd by Solr (one fq each).
+ * The tag lets the facet-count request exclude a group's own filter
+ * (see formatFacetFields), so the other facets narrow to the selection while
+ * the selected facet still lists its sibling values.
+ */
 export const formatFilterQueries = (cmrParams: PdsCmrParams) => {
   let formattedFilterQueryString = ''
-  if (cmrParams.page_types) {
-    formattedFilterQueryString = `${formattedFilterQueryString}&fq=`
-    const subQuery = generateFilterSubQuery(cmrParams.page_types.map((item) => item.topic), 'page_type')
-    formattedFilterQueryString += subQuery
-  }
 
-  if (cmrParams.investigations) {
-    formattedFilterQueryString = `${formattedFilterQueryString}&fq=`
-    const subQuery = generateFilterSubQuery(cmrParams.investigations.map((item) => item.topic), 'investigation_ref')
-    formattedFilterQueryString += subQuery
-  }
+  FILTER_GROUPS.forEach(({ param, field, tag }) => {
+    const selections = cmrParams[param]
+    if (!selections || selections.length === 0) return
 
-  if (cmrParams.instruments) {
-    formattedFilterQueryString = `${formattedFilterQueryString}&fq=`
-    const subQuery = generateFilterSubQuery(cmrParams.instruments.map((item) => item.topic), 'instrument_ref')
-    formattedFilterQueryString += subQuery
-  }
-
-  if (cmrParams.targets) {
-    formattedFilterQueryString = `${formattedFilterQueryString}&fq=`
-    const subQuery = generateFilterSubQuery(cmrParams.targets.map((item) => item.topic), 'target_ref')
-    formattedFilterQueryString += subQuery
-  }
+    const subQuery = generateFilterSubQuery(selections.map((item) => item.topic), field)
+    formattedFilterQueryString += `&fq=${encodeURIComponent(`{!tag=${tag}}${subQuery}`)}`
+  })
 
   return formattedFilterQueryString
 }
+
+/**
+ * Builds the facet.field params for the facet-count request. Each field
+ * excludes its own group's filter ({!ex=tag}), so its counts reflect every
+ * other selected filter and the keyword, but not its own selections.
+ */
+export const formatFacetFields = () => FILTER_GROUPS
+  .map(({ field, tag }) => `&facet.field=${encodeURIComponent(`{!ex=${tag}}${field}`)}`)
+  .join('')
