@@ -15,7 +15,8 @@ import {
   organizeIdsByRefName,
   mapFilterIdsToName,
   mapPageType,
-  formatFilterQueries
+  formatFilterQueries,
+  formatFacetFields
 } from './pds/searchUtils'
 import { IdentifierNameDoc } from '../../types/solrSearchResponse'
 
@@ -115,10 +116,12 @@ export const queryFacetedCollections = async (params: Params): Promise<QueryResu
 
   const pdsData = convertPdsDataToAppData(formattedData)
 
-  let facetCountsUrl = 'https://pds.nasa.gov/services/search/search?q=&qt=keyword&rows=0&facet=on&facet.field=investigation_ref&facet.field=instrument_ref&facet.field=target_ref&facet.field=page_type&wt=json&facet.limit=-1'
-  if (keyword) {
-    facetCountsUrl = facetCountsUrl.replace('q=', `q=${encodeURIComponent(keyword)}`)
-  }
+  // Facet counts use the same keyword and filters as the results, so selecting a
+  // value narrows the other facets. Each facet excludes its own filter (tag/ex),
+  // so a selected facet keeps listing its other values.
+  const facetCountsBaseUrl = 'https://pds.nasa.gov/services/search/search?wt=json&qt=keyword&rows=0&facet=on&facet.limit=-1'
+  const facetKeyword = keyword ? encodeURIComponent(keyword) : ''
+  const facetCountsUrl = `${facetCountsBaseUrl}&q=${facetKeyword}${formatFacetFields()}${formattedQuery}`
 
   // Facet logic
   const pdsUrls = [
